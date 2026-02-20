@@ -140,6 +140,113 @@ def main():
             st.dataframe(df.head(20))
             st.write(f"Shape of Dataset: {df.shape}")
 
+        # --- PART 1: Handle Target Imbalance ---
+        st.markdown("### Part 1: Target Imbalance Handling")
+
+        df_eda = df_clean.copy()
+        df_eda["salary_bin"] = (
+            df_eda["salary"]
+            .astype(str)
+            .str.strip()
+            .str.replace(".", "", regex=False)
+            .map({"<=50K": 0, ">50K": 1})
+        )
+        if df_eda["salary_bin"].isna().any():
+            st.warning("Some salary values could not be mapped to 0/1. Please check salary labels.")
+
+        col1, col2 = st.columns(2)
+        with col1:
+            st.write("#### Salary Distribution (Encoded)")
+            fig, ax = plt.subplots()
+            sns.countplot(x="salary_bin", data=df_eda, ax=ax)
+            ax.set_xlabel("Salary (0 = <=50K, 1 = >50K)")
+            st.pyplot(fig)
+
+        with col2:
+            st.write("#### Percentage Distribution (Encoded)")
+            perc = df_eda["salary_bin"].value_counts(normalize=True).sort_index() * 100
+            st.write(perc.rename(index={0: "<=50K", 1: ">50K"}).round(2).astype(str) + " %")
+
+        # Balance using SMOTE (preferred) if available
+        X = df_eda.drop(columns=["salary", "salary_bin"])
+        y = df_eda["salary_bin"]
+        X_encoded = pd.get_dummies(X, drop_first=False)
+
+        smote_available = False
+        try:
+            from imblearn.over_sampling import SMOTE  # type: ignore
+            smote_available = True
+        except Exception:
+            smote_available = False
+
+        if smote_available:
+            smote = SMOTE(random_state=42)
+            X_bal, y_bal = smote.fit_resample(X_encoded, y)
+            st.success("SMOTE applied to balance classes.")
+        else:
+            X_bal, y_bal = X_encoded, y
+            st.info("SMOTE not available. Install `imbalanced-learn` to enable SMOTE.")
+
+        st.write("#### Class Distribution After Balancing")
+        fig_bal, ax_bal = plt.subplots()
+        sns.countplot(x=y_bal, ax=ax_bal)
+        ax_bal.set_xlabel("Salary (0 = <=50K, 1 = >50K)")
+        st.pyplot(fig_bal)
+        st.write((pd.Series(y_bal).value_counts(normalize=True).sort_index() * 100).round(2).astype(str) + " %")
+
+        st.markdown("---")
+        st.markdown("### Part 2: Feature vs Target Subplots")
+
+        feature_cols = [c for c in df_eda.columns if c not in ["salary", "salary_bin"]]
+        n_features = len(feature_cols)
+        cols = 3
+        rows = int(np.ceil(n_features / cols))
+
+        fig_grid, axes = plt.subplots(rows, cols, figsize=(cols * 5, rows * 4), constrained_layout=True)
+        axes = np.array(axes).reshape(-1)
+
+        for i, col in enumerate(feature_cols):
+            ax = axes[i]
+            if pd.api.types.is_numeric_dtype(df_eda[col]):
+                sns.boxplot(x="salary", y=col, data=df_eda, ax=ax)
+            else:
+                order = df_eda[col].value_counts().index
+                sns.countplot(x=col, hue="salary", data=df_eda, order=order, ax=ax)
+                ax.tick_params(axis="x", rotation=45)
+            ax.set_title(f"Salary vs {col}")
+        for j in range(i + 1, len(axes)):
+            fig_grid.delaxes(axes[j])
+        st.pyplot(fig_grid)
+
+        st.markdown("---")
+        st.markdown("### Part 3: Correlation Analysis")
+
+        df_encoded = pd.get_dummies(df_eda.drop(columns=["salary"]), drop_first=False)
+        corr_matrix = df_encoded.corr()
+        corr_with_target = corr_matrix["salary_bin"].sort_values(ascending=False)
+
+        st.write("#### Correlation with Salary (Encoded)")
+        st.write(corr_with_target)
+
+        threshold = 0.05
+        low_corr = corr_with_target.drop("salary_bin")
+        low_corr = low_corr[low_corr.abs() < threshold].index.tolist()
+
+        st.write("Dropping low correlated features:")
+        st.write(low_corr)
+
+        df_selected = df_encoded.drop(columns=low_corr)
+
+        st.write("#### Correlation Heatmap (Before Feature Selection)")
+        fig_corr_before, ax_corr_before = plt.subplots(figsize=(10, 8))
+        sns.heatmap(corr_matrix, cmap="coolwarm", ax=ax_corr_before)
+        st.pyplot(fig_corr_before)
+
+        st.write("#### Correlation Heatmap (After Feature Selection)")
+        fig_corr_after, ax_corr_after = plt.subplots(figsize=(10, 8))
+        sns.heatmap(df_selected.corr(), cmap="coolwarm", ax=ax_corr_after)
+        st.pyplot(fig_corr_after)
+
         col1, col2 = st.columns(2)
         
         with col1:
