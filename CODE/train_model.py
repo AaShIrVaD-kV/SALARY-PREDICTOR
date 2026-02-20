@@ -11,12 +11,15 @@ from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 from imblearn.over_sampling import SMOTE
 import joblib
-import os
+from pathlib import Path
 
 # --- Configuration ---
-DATA_PATH = os.path.join(os.path.dirname(__file__), '..', 'DATA', 'salary.csv')
-MODEL_PATH = os.path.join(os.path.dirname(__file__), '..', 'MODELS', 'best_model.pkl')
-ENCODER_PATH = os.path.join(os.path.dirname(__file__), '..', 'MODELS', 'label_encoder_target.pkl')
+SCRIPT_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = SCRIPT_DIR.parent
+
+DATA_PATH = PROJECT_ROOT / 'DATA' / 'salary.csv'
+MODEL_PATH = PROJECT_ROOT / 'MODELS' / 'best_model.pkl'
+ENCODER_PATH = PROJECT_ROOT / 'MODELS' / 'label_encoder_target.pkl'
 
 def load_data(path):
     """Load dataset, handline missing values marked as ' ?'."""
@@ -24,7 +27,7 @@ def load_data(path):
     # Also ' ?' is used for missing values.
     
     # Read first line to check headers. It seems to have headers.
-    df = pd.read_csv(path, skipinitialspace=True, na_values='?')
+    df = pd.read_csv(str(path), skipinitialspace=True, na_values='?')
     return df
 
 def preprocess_data(df):
@@ -113,11 +116,11 @@ def main():
     print("=" * 80)
     
     print("\nLoading data...")
-    if not os.path.exists(DATA_PATH):
+    if not DATA_PATH.exists():
         print(f"Error: {DATA_PATH} not found.")
         return
 
-    df = load_data(DATA_PATH)
+    df = load_data(str(DATA_PATH))
     print(f"Dataset loaded: {df.shape}")
     
     print("Preprocessing data...")
@@ -190,10 +193,10 @@ def main():
     
     # --- SAVE MODEL ---
     print(f"\nSaving best model to {MODEL_PATH}...")
-    joblib.dump(final_model, MODEL_PATH)
+    joblib.dump(final_model, str(MODEL_PATH))
     
     print(f"Saving target encoder to {ENCODER_PATH}...")
-    joblib.dump(le_target, ENCODER_PATH)
+    joblib.dump(le_target, str(ENCODER_PATH))
     
     print("\n" + "=" * 80)
     print("✅ TRAINING COMPLETE!")
@@ -202,8 +205,8 @@ def main():
     print(f"  ✓ Original Imbalance: 1:{imbalance_ratio:.2f}")
     print(f"  ✓ After SMOTE Balancing: 1:1 (Perfect)")
     print(f"  ✓ Features Used: age, education, occupation, workclass, hours-per-week")
-    print(f"  ✓ Model Saved: {MODEL_PATH}")
-    print(f"  ✓ Encoder Saved: {ENCODER_PATH}")
+    print(f"  ✓ Model Saved: {str(MODEL_PATH)}")
+    print(f"  ✓ Encoder Saved: {str(ENCODER_PATH)}")
 
 if __name__ == "__main__":
     main()

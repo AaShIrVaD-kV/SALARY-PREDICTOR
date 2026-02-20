@@ -5,25 +5,38 @@ import joblib
 import matplotlib.pyplot as plt
 import seaborn as sns
 import os
+from pathlib import Path
 
-# Constants
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-MODEL_PATH = os.path.join(BASE_DIR, 'MODELS', 'best_model.pkl')
-ENCODER_PATH = os.path.join(BASE_DIR, 'MODELS', 'label_encoder_target.pkl')
-DATA_PATH = os.path.join(BASE_DIR, 'DATA', 'salary.csv')
+# Constants - Handle both local and Streamlit Cloud deployment
+SCRIPT_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = SCRIPT_DIR.parent
+
+# Try to find paths - works for both local and cloud
+MODEL_PATH = PROJECT_ROOT / 'MODELS' / 'best_model.pkl'
+ENCODER_PATH = PROJECT_ROOT / 'MODELS' / 'label_encoder_target.pkl'
+DATA_PATH = PROJECT_ROOT / 'DATA' / 'salary.csv'
+
+# Fallback for different directory structures
+if not MODEL_PATH.exists():
+    # Try alternative path structure (in case deployed differently)
+    MODEL_PATH = Path('MODELS/best_model.pkl')
+if not DATA_PATH.exists():
+    DATA_PATH = Path('DATA/salary.csv')
+if not ENCODER_PATH.exists():
+    ENCODER_PATH = Path('MODELS/label_encoder_target.pkl')
 
 # Page Config
 st.set_page_config(page_title="Salary Prediction System", layout="wide")
 
 @st.cache_data
 def load_data():
-    df = pd.read_csv(DATA_PATH, skipinitialspace=True, na_values='?')
+    df = pd.read_csv(str(DATA_PATH), skipinitialspace=True, na_values='?')
     return df
 
 @st.cache_resource
 def load_model():
-    model = joblib.load(MODEL_PATH)
-    le_target = joblib.load(ENCODER_PATH)
+    model = joblib.load(str(MODEL_PATH))
+    le_target = joblib.load(str(ENCODER_PATH))
     return model, le_target
 
 def main():
