@@ -7,9 +7,10 @@ import seaborn as sns
 import os
 
 # Constants
-MODEL_PATH = "best_model.pkl"
-ENCODER_PATH = "label_encoder_target.pkl"
-DATA_PATH = "salary.csv"
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+MODEL_PATH = os.path.join(BASE_DIR, 'MODELS', 'best_model.pkl')
+ENCODER_PATH = os.path.join(BASE_DIR, 'MODELS', 'label_encoder_target.pkl')
+DATA_PATH = os.path.join(BASE_DIR, 'DATA', 'salary.csv')
 
 # Page Config
 st.set_page_config(page_title="Salary Prediction System", layout="wide")
@@ -55,57 +56,24 @@ def main():
             workclasses = sorted(df_clean['workclass'].unique())
             workclass = st.selectbox("Workclass", workclasses)
             
-            # Education - Map name to number
-            # Create a mapping dictionary from the clean dataframe
-            # Sort by education-num to make the list logical
-            edu_df = df_clean[['education', 'education-num']].drop_duplicates().sort_values('education-num')
-            education_options = edu_df['education'].tolist()
-            education_mapping = dict(zip(edu_df['education'], edu_df['education-num']))
-            
-            education_level = st.selectbox("Education Level", education_options, index=9) # Default to some-college or bachelors
-            education_num = education_mapping[education_level]
+            # Education
+            educations = sorted(df_clean['education'].unique())
+            education = st.selectbox("Education", educations)
 
-            marital_statuses = sorted(df_clean['marital-status'].unique())
-            marital_status = st.selectbox("Marital Status", marital_statuses)
-            
+        with col2:
             occupations = sorted(df_clean['occupation'].unique())
             occupation = st.selectbox("Occupation", occupations)
             
-            relationships = sorted(df_clean['relationship'].unique())
-            relationship = st.selectbox("Relationship", relationships)
-
-        with col2:
-            races = sorted(df_clean['race'].unique())
-            race = st.selectbox("Race", races)
-            
-            sexes = sorted(df_clean['sex'].unique())
-            sex = st.selectbox("Sex", sexes)
-            
-            capital_gain = st.number_input("Capital Gain", min_value=0, value=0)
-            capital_loss = st.number_input("Capital Loss", min_value=0, value=0)
-            
             hours_per_week = st.number_input("Hours per Week", min_value=1, max_value=100, value=40)
-            
-            native_countries = sorted(df_clean['native-country'].unique())
-            # Default to United-States if available
-            default_country_idx = native_countries.index('United-States') if 'United-States' in native_countries else 0
-            native_country = st.selectbox("Native Country", native_countries, index=default_country_idx)
 
         # Prepare Input Data
-        # Must match columns: ['age', 'workclass', 'education-num', 'marital-status', 'occupation', 'relationship', 'race', 'sex', 'capital-gain', 'capital-loss', 'hours-per-week', 'native-country']
+        # Using only 5 selected features: age, education, occupation, workclass, hours-per-week
         input_data = pd.DataFrame({
             'age': [age],
-            'workclass': [workclass],
-            'education-num': [education_num], # IMPORTANT: Use the number
-            'marital-status': [marital_status],
+            'education': [education],
             'occupation': [occupation],
-            'relationship': [relationship],
-            'race': [race],
-            'sex': [sex],
-            'capital-gain': [capital_gain],
-            'capital-loss': [capital_loss],
-            'hours-per-week': [hours_per_week],
-            'native-country': [native_country]
+            'workclass': [workclass],
+            'hours-per-week': [hours_per_week]
         })
         
         if st.button("Predict Salary"):
@@ -236,16 +204,6 @@ def main():
         st.write(low_corr)
 
         df_selected = df_encoded.drop(columns=low_corr)
-
-        st.write("#### Correlation Heatmap (Before Feature Selection)")
-        fig_corr_before, ax_corr_before = plt.subplots(figsize=(10, 8))
-        sns.heatmap(corr_matrix, cmap="coolwarm", ax=ax_corr_before)
-        st.pyplot(fig_corr_before)
-
-        st.write("#### Correlation Heatmap (After Feature Selection)")
-        fig_corr_after, ax_corr_after = plt.subplots(figsize=(10, 8))
-        sns.heatmap(df_selected.corr(), cmap="coolwarm", ax=ax_corr_after)
-        st.pyplot(fig_corr_after)
 
         col1, col2 = st.columns(2)
         

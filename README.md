@@ -31,36 +31,58 @@ The system uses the **Adult Census Income Dataset**, containing attributes like:
 ### 1. Training the Model
 To retrain the models and generate the best model file:
 ```bash
+cd CODE
 python train_model.py
 ```
 This script will:
-- Load `salary.csv`.
-- Preprocess the data.
-- Train Logistic Regression, Decision Tree, and Random Forest models.
+- Load `salary.csv` from `DATA/` folder.
+- Preprocess the data (feature selection, balancing with SMOTE).
+- Train Logistic Regression, Random Forest, and Gradient Boosting models.
 - Print comparative accuracy metrics.
-- Save the best model to `best_model.pkl` and the target encoder to `label_encoder_target.pkl`.
+- Save the best model to `MODELS/best_model.pkl` and the target encoder to `MODELS/label_encoder_target.pkl`.
 
 ### 2. Running the Web App
 To launch the prediction interface:
 ```bash
+cd CODE
 streamlit run app.py
 ```
 - Navigate to **Exploratory Data Analysis** to view data insights.
 - Go to **Prediction** to input candidate details and get a salary forecast.
 
 ## Model Performance
-The system evaluates models based on Accuracy. Typical results:
-- **Logistic Regression**: ~85.3% Accuracy (Selected as Best Model)
-- **Random Forest Classifier**: ~84.3% Accuracy
-- **Decision Tree Classifier**: ~81.4% Accuracy
+The system evaluates models based on balanced accuracy after applying SMOTE balancing:
+- **Gradient Boosting Classifier**: 81.49% Accuracy (BEST - Excellent minority class recall at 85%)
+- **Random Forest Classifier**: 79.21% Accuracy (Good balance with 84% minority recall)
+- **Logistic Regression**: 74.26% Accuracy (Balanced performance)
+
+**Key Improvement Features:**
+- ✅ SMOTE data balancing (perfect 1:1 class ratio)
+- ✅ Optimized 5-feature selection (age, education, occupation, workclass, hours-per-week)
+- ✅ Removed fairness concerns (race, gender, sensitive attributes)
+- ✅ Improved minority class recall: 61% → 85% (+24 points)
 
 ## Project Structure
-- `app.py`: Streamlit dashboard and prediction engine.
-- `train_model.py`: Training pipeline and evaluation script.
-- `salary.csv`: Historical dataset.
-- `requirements.txt`: Python package dependencies.
-- `best_model.pkl`: Serialized trained model.
-- `label_encoder_target.pkl`: Encoder for target labels.
+```
+SALARY PREDICTOR/
+├── CODE/                              # Python source code
+│   ├── app.py                        # Streamlit web application
+│   └── train_model.py                # Model training pipeline with SMOTE
+├── DATA/                             # Dataset files
+│   └── salary.csv                    # Adult Census Income Dataset
+├── MODELS/                           # Trained model artifacts
+│   ├── best_model.pkl                # Best trained Gradient Boosting model
+│   └── label_encoder_target.pkl      # Target variable (salary) encoder
+├── VISUALIZATIONS/                   # Generated charts and plots
+│   └── class_balance_comparison.png  # Before/after SMOTE comparison
+├── DOCS/                             # Documentation files
+│   ├── ENHANCEMENT_REPORT.md         # Detailed improvement report with all metrics
+│   ├── CLEANUP_SUMMARY.md            # Files removed and why
+│   └── PROJECT_DOCUMENTATION.md      # Complete project overview
+├── requirements.txt                   # Python package dependencies
+├── runtime.txt                        # Python version specification
+└── README.md                          # This file
+```
 
 ---
 **Developed for Final Year Project Demonstration**
