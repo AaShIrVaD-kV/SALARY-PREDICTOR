@@ -2,7 +2,7 @@
 
 **Project:** Salary Prediction System  
 **Status:** ✅ COMPLETE & PRODUCTION READY  
-**Last Updated:** February 20, 2026
+**Last Updated:** February 21, 2026
 
 ---
 
@@ -101,13 +101,13 @@ SALARY PREDICTOR/
 
 ### Selected Features (5):
 
-| Feature | Type | Range | Role |
-|:---|:---:|:---:|:---|
-| **age** | Numeric | 17-90 | Life experience & career stage |
-| **education** | Category | 16 levels | Educational qualification |
-| **occupation** | Category | 14 types | Job type & field |
-| **workclass** | Category | 9 types | Employment sector |
-| **hours-per-week** | Numeric | 1-100 | Work intensity |
+| Feature            |   Type   |   Range   | Role                           |
+| :----------------- | :------: | :-------: | :----------------------------- |
+| **age**            | Numeric  |   17-90   | Life experience & career stage |
+| **education**      | Category | 16 levels | Educational qualification      |
+| **occupation**     | Category | 14 types  | Job type & field               |
+| **workclass**      | Category |  9 types  | Employment sector              |
+| **hours-per-week** | Numeric  |   1-100   | Work intensity                 |
 
 ### Why These Features?
 ```
@@ -414,6 +414,66 @@ For issues or improvements:
 
 ---
 
+## 🔄 RECENT UPDATES & REFACTORS
+
+### Recent EDA Improvements – Imbalance Visualization Refactor
+
+**Date:** February 21, 2026  
+**Module Affected:** `CODE/app.py` → Exploratory Data Analysis Section (Part 1)
+
+#### Overview
+
+As part of an ongoing effort to enhance the clarity, professionalism, and academic rigour of the Salary Prediction System's Exploratory Data Analysis (EDA) module, the target class imbalance visualization section underwent a significant refactoring. The previous implementation presented multiple independent plots and supplementary percentage tables within the Streamlit interface, resulting in a fragmented and cluttered user experience. The revised implementation consolidates all imbalance-related visual output into a single, well-structured matplotlib subplot figure.
+
+#### Changes Made
+
+##### 1. Removed Multiple Redundant Imbalance Graphs
+Prior to this update, the imbalance section rendered three separate visual elements:
+- A standalone countplot depicting the class distribution **before** SMOTE balancing.
+- A Streamlit-rendered percentage table for the pre-SMOTE class proportions.
+- A standalone countplot depicting the class distribution **after** SMOTE balancing.
+- A second percentage table for the post-SMOTE class proportions.
+
+All of the above have been removed in favour of a unified, consolidated figure.
+
+##### 2. Replaced with a Single Comparative Subplot Figure
+The imbalance section now renders a **single `matplotlib` figure** composed of a **1×2 grid of subplots**:
+
+|         Subplot         | Contents                                                                     |
+| :---------------------: | :--------------------------------------------------------------------------- |
+| **Left (Before SMOTE)** | Bar chart showing the original class distribution (imbalanced: ~75% vs ~25%) |
+| **Right (After SMOTE)** | Bar chart showing the SMOTE-balanced distribution (balanced: 50% vs 50%)     |
+
+The figure carries a bold, descriptive title: **"Class Distribution Before and After SMOTE"**, providing immediate contextual clarity for academic reviewers and project evaluators.
+
+##### 3. Improved Visual Clarity and Presentation
+- Each bar is annotated with its exact sample count at the top for precise readability.
+- A consistent colour scheme is applied: **Blue (`#3498db`)** for class `0` (≤50K) and **Red (`#e74c3c`)** for class `1` (>50K).
+- Axis labels clearly indicate: `0 = <=50K, 1 = >50K` on both subplots.
+- `plt.tight_layout()` is applied to ensure clean spacing and prevent label overlap.
+
+##### 4. Cleaned Redundant Percentage Tables
+The percentage breakdown tables (`st.write(...)`) that previously followed each plot were removed. This information is implicitly conveyed through the bar heights and count annotations, making the visualisation self-explanatory and reducing information redundancy.
+
+##### 5. Eliminated Inline Status Messages
+The `st.success("SMOTE applied to balance classes.")` and `st.info("SMOTE not available...")` message boxes were removed. The visualisation now communicates balancing results directly and unambiguously through the subplot comparison.
+
+#### Impact Assessment
+
+| Aspect                        | Before Refactor              | After Refactor           |
+| :---------------------------- | :--------------------------- | :----------------------- |
+| Number of plots rendered      | 2 separate countplots        | 1 unified subplot (1×2)  |
+| Percentage tables             | 2 (before + after)           | None (removed)           |
+| Status messages               | 1 (`st.success` / `st.info`) | None (removed)           |
+| Visual consistency            | Fragmented                   | Consolidated and uniform |
+| Academic presentation quality | Moderate                     | High                     |
+
+#### Technical Implementation Note
+
+The SMOTE application logic itself was preserved without modification. The refactoring was confined exclusively to the visualisation layer (`app.py`, Part 1: Target Imbalance Handling). The underlying data pipeline — including `salary_bin` binary encoding, `pd.get_dummies()` for SMOTE input preparation, and the SMOTE resampling step — remains functionally unchanged.
+
+---
+
 ## 🎉 CONCLUSION
 
 The Salary Prediction project has been successfully enhanced with:
@@ -429,7 +489,7 @@ The Salary Prediction project has been successfully enhanced with:
 
 ---
 
-**Project Version:** 2.0 (Enhanced)  
-**Last Updated:** February 20, 2026  
+**Project Version:** 2.1 (EDA Refactor)  
+**Last Updated:** February 21, 2026  
 **Next Review:** As needed  
 **Maintainer:** AI Development Team
