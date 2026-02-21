@@ -188,21 +188,51 @@ def main():
         st.markdown("---")
         st.markdown("### Part 3: Correlation Analysis")
 
-        df_encoded = pd.get_dummies(df_eda.drop(columns=["salary"]), drop_first=False)
-        corr_matrix = df_encoded.corr()
-        corr_with_target = corr_matrix["salary_bin"].sort_values(ascending=False)
+        # --- Build a temp df for correlation only (original df_eda is UNCHANGED) ---
+        df_corr = df_eda.copy()
 
-        st.write("#### Correlation with Salary (Encoded)")
-        st.write(corr_with_target)
+        # Binary encode salary temporarily (<=50K = 0, >50K = 1)
+        df_corr["salary_bin"] = (
+            df_corr["salary"].astype(str).str.strip().str.replace(".", "", regex=False)
+            .map({"<=50K": 0, ">50K": 1})
+        )
 
-        threshold = 0.05
-        low_corr = corr_with_target.drop("salary_bin")
-        low_corr = low_corr[low_corr.abs() < threshold].index.tolist()
+        # Encode ALL categorical columns using category codes (NOT get_dummies)
+        # This keeps one column per feature with original feature names.
+        for col in df_corr.select_dtypes(include=["object"]).columns:
+            df_corr[col] = df_corr[col].astype("category").cat.codes
 
-        st.write("Dropping low correlated features:")
-        st.write(low_corr)
+        # Compute correlation of every feature vs salary_bin
+        feature_cols = [c for c in df_corr.columns if c != "salary_bin"]
+        corr_with_salary = (
+            df_corr[feature_cols + ["salary_bin"]]
+            .corr()["salary_bin"]
+            .drop("salary_bin")
+            .sort_values(ascending=False)
+        )
+        corr_with_salary.index.name = "Feature"
 
-        df_selected = df_encoded.drop(columns=low_corr)
+        st.write("#### Correlation of Each Feature with Salary (binary: 0=<=50K, 1=>50K)")
+        st.info(
+            "Categorical features are temporarily encoded using category codes "
+            "(not one-hot), so each feature keeps its original name."
+        )
+
+        # Display as a clean DataFrame table
+        corr_df = corr_with_salary.reset_index()
+        corr_df.columns = ["Feature", "Correlation with Salary"]
+        corr_df["Correlation with Salary"] = corr_df["Correlation with Salary"].round(4)
+        st.dataframe(corr_df.style.background_gradient(cmap="RdYlGn", subset=["Correlation with Salary"]), use_container_width=True)
+
+        # Horizontal bar chart
+        fig_corr_bar, ax_corr_bar = plt.subplots(figsize=(8, len(corr_with_salary) * 0.5 + 1))
+        colors = ["#2ecc71" if v >= 0 else "#e74c3c" for v in corr_with_salary.values]
+        ax_corr_bar.barh(corr_with_salary.index[::-1], corr_with_salary.values[::-1], color=colors[::-1])
+        ax_corr_bar.axvline(0, color="black", linewidth=0.8, linestyle="--")
+        ax_corr_bar.set_xlabel("Correlation with Salary")
+        ax_corr_bar.set_title("Feature Correlation with Salary")
+        plt.tight_layout()
+        st.pyplot(fig_corr_bar)
 
         col1, col2 = st.columns(2)
         
