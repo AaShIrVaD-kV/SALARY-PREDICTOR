@@ -7,9 +7,10 @@ import seaborn as sns
 import os
 
 # Constants
-MODEL_PATH = "best_model.pkl"
-ENCODER_PATH = "label_encoder_target.pkl"
-DATA_PATH = "salary.csv"
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+MODEL_PATH = os.path.join(BASE_DIR, "MODELS", "best_model.pkl")
+ENCODER_PATH = os.path.join(BASE_DIR, "MODELS", "label_encoder_target.pkl")
+DATA_PATH = os.path.join(BASE_DIR, "DATA", "salary.csv")
 
 # Page Config
 st.set_page_config(page_title="Salary Prediction System", layout="wide")
@@ -79,14 +80,13 @@ def main():
             st.write("Processing input...")
             try:
                 prediction_idx = model.predict(input_data)[0]
-                prediction_label = le_target.inverse_transform([prediction_idx])[0]
+                prediction_label = le_target.inverse_transform([int(prediction_idx)])[0]
                 
                 # Probability
+                confidence = 0
                 if hasattr(model, "predict_proba"):
                     proba = model.predict_proba(input_data)[0]
-                    confidence = proba[prediction_idx] * 100
-                else:
-                    confidence = 0
+                    confidence = float(proba[int(prediction_idx)]) * 100
 
                 st.write("---")
                 if prediction_label == ">50K":
