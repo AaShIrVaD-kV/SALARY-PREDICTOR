@@ -229,18 +229,6 @@ def main():
         plt.tight_layout()
         st.pyplot(fig_corr_bar)
 
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.write("#### Salary Distribution")
-            fig, ax = plt.subplots()
-            sns.countplot(x='salary', data=df_clean, ax=ax)
-            st.pyplot(fig)
-            
-        with col2:
-            st.write("#### Imbalance Check")
-            st.write(df_clean['salary'].value_counts(normalize=True))
-
         st.write("#### Income by Education Level")
         fig2, ax2 = plt.subplots(figsize=(10, 6))
         sns.countplot(y='education', hue='salary', data=df_clean, order=df_clean['education'].value_counts().index, ax=ax2)
