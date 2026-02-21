@@ -113,53 +113,48 @@ def main():
         df_eda = df_clean.copy()
         df_eda["salary_bin"] = (
             df_eda["salary"]
-            .astype(str)
-            .str.strip()
-            .str.replace(".", "", regex=False)
+            .astype(str).str.strip().str.replace(".", "", regex=False)
             .map({"<=50K": 0, ">50K": 1})
         )
-        if df_eda["salary_bin"].isna().any():
-            st.warning("Some salary values could not be mapped to 0/1. Please check salary labels.")
 
-        col1, col2 = st.columns(2)
-        with col1:
-            st.write("#### Salary Distribution (Encoded)")
-            fig, ax = plt.subplots()
-            sns.countplot(x="salary_bin", data=df_eda, ax=ax)
-            ax.set_xlabel("Salary (0 = <=50K, 1 = >50K)")
-            st.pyplot(fig)
-
-        with col2:
-            st.write("#### Percentage Distribution (Encoded)")
-            perc = df_eda["salary_bin"].value_counts(normalize=True).sort_index() * 100
-            st.write(perc.rename(index={0: "<=50K", 1: ">50K"}).round(2).astype(str) + " %")
-
-        # Balance using SMOTE (preferred) if available
+        # Encode categoricals for SMOTE (needs numeric input)
         X = df_eda.drop(columns=["salary", "salary_bin"])
         y = df_eda["salary_bin"]
         X_encoded = pd.get_dummies(X, drop_first=False)
 
-        smote_available = False
         try:
-            from imblearn.over_sampling import SMOTE  # type: ignore
-            smote_available = True
-        except Exception:
-            smote_available = False
-
-        if smote_available:
+            from imblearn.over_sampling import SMOTE
             smote = SMOTE(random_state=42)
             X_bal, y_bal = smote.fit_resample(X_encoded, y)
-            st.success("SMOTE applied to balance classes.")
-        else:
+            smote_applied = True
+        except Exception:
             X_bal, y_bal = X_encoded, y
-            st.info("SMOTE not available. Install `imbalanced-learn` to enable SMOTE.")
+            smote_applied = False
 
-        st.write("#### Class Distribution After Balancing")
-        fig_bal, ax_bal = plt.subplots()
-        sns.countplot(x=y_bal, ax=ax_bal)
-        ax_bal.set_xlabel("Salary (0 = <=50K, 1 = >50K)")
-        st.pyplot(fig_bal)
-        st.write((pd.Series(y_bal).value_counts(normalize=True).sort_index() * 100).round(2).astype(str) + " %")
+        # --- Single 1x2 subplot: Before vs After SMOTE ---
+        fig_imb, (ax_before, ax_after) = plt.subplots(1, 2, figsize=(8, 4))
+        fig_imb.suptitle("Class Distribution Before and After SMOTE", fontsize=13, fontweight="bold")
+
+        # Before SMOTE
+        before_counts = pd.Series(y).value_counts().sort_index()
+        ax_before.bar(before_counts.index.astype(str), before_counts.values, color=["#3498db", "#e74c3c"], width=0.5)
+        ax_before.set_title("Before SMOTE")
+        ax_before.set_xlabel("0 = <=50K,  1 = >50K")
+        ax_before.set_ylabel("Count")
+        for i, v in enumerate(before_counts.values):
+            ax_before.text(i, v + 100, str(v), ha="center", fontsize=9)
+
+        # After SMOTE
+        after_counts = pd.Series(y_bal).value_counts().sort_index()
+        ax_after.bar(after_counts.index.astype(str), after_counts.values, color=["#3498db", "#e74c3c"], width=0.5)
+        ax_after.set_title("After SMOTE" if smote_applied else "After (SMOTE unavailable)")
+        ax_after.set_xlabel("0 = <=50K,  1 = >50K")
+        ax_after.set_ylabel("Count")
+        for i, v in enumerate(after_counts.values):
+            ax_after.text(i, v + 100, str(v), ha="center", fontsize=9)
+
+        plt.tight_layout()
+        st.pyplot(fig_imb)
 
         st.markdown("---")
         st.markdown("### Part 2: Feature vs Target Subplots")
