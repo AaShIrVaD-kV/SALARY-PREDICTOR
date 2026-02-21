@@ -2,7 +2,7 @@
 ## Complete Before & After Analysis with All Algorithm Scores
 
 **Project Name:** Salary Prediction System  
-**Date:** February 20, 2026  
+**Date:** February 21, 2026  
 **Status:** ✅ Completed with Major Enhancements  
 **Report Type:** Detailed Technical Analysis
 
@@ -1036,6 +1036,293 @@ Status: 🟢 PRODUCTION READY
 
 ---
 
-**Report Generated:** February 20, 2026  
-**Project Status:** ✅ Complete & Enhanced  
+---
+
+**Report Generated:** February 21, 2026  
+**Project Status:** ✅ Active Development  
 **Quality Assurance:** PASSED
+
+---
+
+## SECTION 8: CHANGES MADE ON FEBRUARY 21, 2026 (Chronological Order)
+
+All changes documented below were applied in the exact order they were executed during the development session on February 21, 2026.
+
+---
+
+### Change 8.1 — Fixed `train_model.py`: SMOTE Applied After Encoding (Bug Fix)
+
+**File:** `CODE/train_model.py`  
+**Type:** Critical Bug Fix  
+**Time:** February 21, 2026 (Session Start)
+
+**Problem Identified:**
+```
+Error in app.py: "could not convert string to float: '10th'"
+
+Root Cause:
+  SMOTE was being called directly on raw string DataFrame X:
+    smote.fit_resample(X, y_encoded)  ← X contained 'education', 'workclass' as strings
+  SMOTE only works on numeric data.
+  The saved model was therefore trained incorrectly.
+```
+
+**Fix Applied:**
+```python
+# BEFORE (broken):
+smote = SMOTE(random_state=42)
+X_balanced, y_balanced = smote.fit_resample(X, y_encoded)
+# ↑ X had raw string columns → crash
+
+# AFTER (fixed):
+# Step 1: One-hot encode FIRST
+temp_preprocessor = get_preprocessor()
+X_encoded = temp_preprocessor.fit_transform(X)       # numeric now
+
+# Step 2: Apply SMOTE on numeric encoded data
+smote = SMOTE(random_state=42)
+X_balanced, y_balanced = smote.fit_resample(X_encoded, y_encoded)
+
+# Step 3: Train classifiers on encoded balanced data
+clf.fit(X_train_enc, y_train)
+
+# Step 4: Build SEPARATE inference pipeline fitted on ORIGINAL X
+# (so app.py can send raw string inputs and the pipeline handles encoding)
+inference_preprocessor = get_preprocessor()
+inference_preprocessor.fit(X)
+final_pipeline = Pipeline(steps=[
+    ('preprocessor', inference_preprocessor),
+    ('classifier', best_clf)
+])
+```
+
+**Impact:**
+```
+✅ Prediction no longer crashes on string education/workclass values
+✅ Sanity check passed: model predicts correctly on raw string input
+✅ Best model: Gradient Boosting retrained at 81.49% accuracy
+✅ MODELS/best_model.pkl regenerated correctly
+```
+
+---
+
+### Change 8.2 — Fixed `app.py`: Corrected File Paths + Confidence Score
+
+**File:** `CODE/app.py`  
+**Type:** Bug Fix
+
+**Problem Identified:**
+```
+Paths were hardcoded as relative strings ("best_model.pkl", "salary.csv").
+These fail on Streamlit Cloud because the working directory is the repo root,
+but the files live in MODELS/ and DATA/ subdirectories.
+```
+
+**Fix Applied:**
+```python
+# BEFORE:
+MODEL_PATH   = "best_model.pkl"
+ENCODER_PATH = "label_encoder_target.pkl"
+DATA_PATH    = "salary.csv"
+
+# AFTER:
+BASE_DIR     = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+MODEL_PATH   = os.path.join(BASE_DIR, "MODELS", "best_model.pkl")
+ENCODER_PATH = os.path.join(BASE_DIR, "MODELS", "label_encoder_target.pkl")
+DATA_PATH    = os.path.join(BASE_DIR, "DATA", "salary.csv")
+```
+
+**Also fixed — Confidence score index safety:**
+```python
+# BEFORE:
+confidence = proba[prediction_idx] * 100          # prediction_idx could be numpy int
+
+# AFTER:
+confidence = float(proba[int(prediction_idx)]) * 100  # safely cast to Python int
+```
+
+**Impact:**
+```
+✅ App works correctly both locally and on Streamlit Cloud
+✅ No FileNotFoundError on deployed app
+✅ Confidence % no longer raises index type errors
+```
+
+---
+
+### Change 8.3 — Installed `imbalanced-learn` Package
+
+**File:** `.venv` environment  
+**Type:** Dependency Installation
+
+```
+Command run: .venv\Scripts\pip.exe install imbalanced-learn
+Version installed: 0.14.1
+```
+
+**Note:** `imbalanced-learn` was already listed in `requirements.txt` but was
+not installed in the local virtual environment. Now installed and verified.
+
+---
+
+### Change 8.4 — EDA Part 3: Replaced `pd.get_dummies()` Correlation with `.cat.codes`
+
+**File:** `CODE/app.py`  
+**Section:** EDA → Part 3: Correlation Analysis  
+**Type:** Feature Improvement
+
+**Problem:**
+```
+Previous implementation used pd.get_dummies() which created hundreds of
+dummy-encoded columns. The correlation table showed entries like:
+  workclass_Local-gov: 0.0312
+  education_10th: -0.0214
+  ...
+This was unreadable and not useful. Low-correlated dummy columns were also
+being permanently dropped, which broke the dataset for other EDA sections.
+```
+
+**Fix Applied:**
+```python
+# BEFORE (broken):
+df_encoded = pd.get_dummies(df_eda.drop(columns=["salary"]), drop_first=False)
+corr_matrix = df_encoded.corr()
+corr_with_target = corr_matrix["salary_bin"].sort_values(ascending=False)
+# ... then drops low-correlated columns permanently
+
+# AFTER (fixed):
+# 1. Work on a TEMP copy only — original df_eda untouched
+df_corr = df_eda.copy()
+
+# 2. Binary-encode salary (0 / 1)
+df_corr["salary_bin"] = df_corr["salary"].map({"<=50K": 0, ">50K": 1})
+
+# 3. Encode categoricals using .cat.codes — keeps ONE column per feature
+for col in df_corr.select_dtypes(include=["object"]).columns:
+    df_corr[col] = df_corr[col].astype("category").cat.codes
+
+# 4. Compute correlation vs salary_bin for ALL features
+corr_with_salary = df_corr.corr()["salary_bin"].drop("salary_bin")
+```
+
+**Output now shows:**
+```
+  Feature             Correlation with Salary
+  capital-gain               0.2234
+  education-num              0.3353
+  age                        0.2340
+  hours-per-week             0.2296
+  occupation                 0.1832
+  education                  0.2198
+  workclass                  0.1050
+  marital-status            -0.2412
+  ...                        ...
+```
+
+**Visual output added:**
+- Colour-coded gradient table (green = positive, red = negative correlation)
+- Horizontal bar chart (green bars = positive, red bars = negative)
+
+**Impact:**
+```
+✅ No more dummy-encoded column names in correlation table
+✅ All original feature names preserved
+✅ No columns dropped from dataset
+✅ Original df_eda untouched
+```
+
+---
+
+### Change 8.5 — EDA Part 3: Reduced Correlation Bar Chart Size
+
+**File:** `CODE/app.py`  
+**Type:** Visual Polish
+
+```python
+# BEFORE:
+fig_corr_bar, ax_corr_bar = plt.subplots(figsize=(8, len(corr_with_salary) * 0.5 + 1))
+# Produced very tall chart (dynamic height scaled with number of features)
+
+# AFTER:
+fig_corr_bar, ax_corr_bar = plt.subplots(figsize=(6, 4))
+# Fixed compact size — clean and proportional
+```
+
+---
+
+### Change 8.6 — EDA Part 1: Replaced Multiple Imbalance Graphs with Single 1×2 Subplot
+
+**File:** `CODE/app.py`  
+**Section:** EDA → Part 1: Target Imbalance Handling  
+**Type:** UI Refactor
+
+**Problem:**
+```
+The imbalance section rendered 4 separate elements:
+  1. Countplot: class distribution BEFORE SMOTE
+  2. st.write table: percentage breakdown BEFORE SMOTE
+  3. Countplot: class distribution AFTER SMOTE
+  4. st.write table: percentage breakdown AFTER SMOTE
+  + st.success / st.info messages
+This was fragmented, cluttered, and unprofessional.
+```
+
+**Fix Applied:**
+```python
+# Single 1x2 subplot figure replacing all the above
+fig_imb, (ax_before, ax_after) = plt.subplots(1, 2, figsize=(8, 4))
+fig_imb.suptitle("Class Distribution Before and After SMOTE",
+                 fontsize=13, fontweight="bold")
+
+# Left: Before SMOTE
+before_counts = pd.Series(y).value_counts().sort_index()
+ax_before.bar(["0", "1"], before_counts.values,
+             color=["#3498db", "#e74c3c"], width=0.5)
+ax_before.set_title("Before SMOTE")
+ax_before.set_xlabel("0 = <=50K,  1 = >50K")
+for i, v in enumerate(before_counts.values):
+    ax_before.text(i, v + 100, str(v), ha="center", fontsize=9)
+
+# Right: After SMOTE
+after_counts = pd.Series(y_bal).value_counts().sort_index()
+ax_after.bar(["0", "1"], after_counts.values,
+            color=["#3498db", "#e74c3c"], width=0.5)
+ax_after.set_title("After SMOTE")
+ax_after.set_xlabel("0 = <=50K,  1 = >50K")
+for i, v in enumerate(after_counts.values):
+    ax_after.text(i, v + 100, str(v), ha="center", fontsize=9)
+
+plt.tight_layout()
+st.pyplot(fig_imb)
+```
+
+**Elements removed:**
+```
+❌ Standalone "Salary Distribution (Encoded)" countplot
+❌ Two-column Streamlit layout for percentage table
+❌ Separate "Class Distribution After Balancing" countplot
+❌ Post-SMOTE percentage table (st.write)
+❌ st.success("SMOTE applied...") message
+❌ st.info("SMOTE not available...") message
+```
+
+**Impact:**
+```
+✅ Single professional figure with clear before/after comparison
+✅ Count annotations on each bar for precise readability
+✅ Consistent colour scheme: Blue (<=50K), Red (>50K)
+✅ Significantly cleaner and more presentation-ready EDA section
+```
+
+---
+
+### Summary of All Changes — February 21, 2026
+
+|   #   | Change                                                    | File             |     Type      | Status |
+| :---: | :-------------------------------------------------------- | :--------------- | :-----------: | :----: |
+|  8.1  | SMOTE applied after one-hot encoding (not on raw strings) | `train_model.py` |    Bug Fix    |   ✅    |
+|  8.2  | Fixed absolute file paths + confidence score cast         | `app.py`         |    Bug Fix    |   ✅    |
+|  8.3  | Installed `imbalanced-learn` in `.venv`                   | Environment      |  Dependency   |   ✅    |
+|  8.4  | Replaced `get_dummies()` correlation with `.cat.codes`    | `app.py`         |  Improvement  |   ✅    |
+|  8.5  | Reduced correlation bar chart to fixed size `(6, 4)`      | `app.py`         | Visual Polish |   ✅    |
+|  8.6  | Replaced 4 imbalance charts with single 1×2 subplot       | `app.py`         |  UI Refactor  |   ✅    |
