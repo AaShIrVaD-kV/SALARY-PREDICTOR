@@ -225,7 +225,7 @@ def main():
         st.dataframe(corr_df.style.background_gradient(cmap="RdYlGn", subset=["Correlation with Salary"]), use_container_width=True)
 
         # Horizontal bar chart
-        fig_corr_bar, ax_corr_bar = plt.subplots(figsize=(8, len(corr_with_salary) * 0.5 + 1))
+        fig_corr_bar, ax_corr_bar = plt.subplots(figsize=(6, 4))
         colors = ["#2ecc71" if v >= 0 else "#e74c3c" for v in corr_with_salary.values]
         ax_corr_bar.barh(corr_with_salary.index[::-1], corr_with_salary.values[::-1], color=colors[::-1])
         ax_corr_bar.axvline(0, color="black", linewidth=0.8, linestyle="--")
