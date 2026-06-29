@@ -426,7 +426,7 @@ This project is licensed under the MIT License - see the [LICENSE](https://opens
 * **GitHub:** [@AaShIrVaD-kV](https://github.com/AaShIrVaD-kV)
 * **LinkedIn:** [Aashirvad kV](https://linkedin.com/in/aashirvad-kv)
 * **Portfolio:** [aashirvad-kv.github.io](https://aashirvad-kv.github.io)
-* **Email:** aashirvad.kv@example.com
+* **Email:** aashirvadkv@gmail.com
 
 ---
 *Developed for Final Year Project Demonstration. Cleaned, Optimized, and Documented for general usage.*
