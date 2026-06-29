@@ -5,7 +5,7 @@ import joblib
 import matplotlib.pyplot as plt
 import seaborn as sns
 import os
-git add .
+
 # Constants
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MODEL_PATH = os.path.join(BASE_DIR, "MODELS", "best_model.pkl")
